@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 햄부기햄스터 내전 시스템 (맞밸 정렬 & 매치업 최적화형) ⚡</title>
+    <style>
+        /* 🌌 프리미엄 세련된 미드나잇 다크 테마 */
+        :root {
+            --bg-color: #0b0f19;          
+            --panel-bg: #131a2e;          
+            --panel-border: #1f2a45;      
+            
+            --blue-team: #3b82f6;         
+            --blue-bg: rgba(59, 130, 246, 0.06);
+            --blue-glow: rgba(59, 130, 246, 0.15);
+            
+            --red-team: #ef4444;          
+            --red-bg: rgba(239, 68, 68, 0.06);
+            --red-glow: rgba(239, 68, 68, 0.15);
+            
+            --text-main: #f1f5f9;         
+            --text-muted: #64748b;        
+            --accent-gold: #f59e0b;       
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            margin: 0;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 20px;
+            width: 100%;
+            max-width: 1600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            background-color: #111827;
+            border: 1px solid var(--panel-border);
+            color: var(--text-muted);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn.active {
+            background-color: #1e293b;
+            color: #ffffff;
+            border-color: #475569;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+            max-width: 1600px;
+        }
+
+        .tab-content.active {
+            display: grid;
+        }
+
+        #matchRoomPage {
+            grid-template-columns: 1.3fr 1fr;
+            gap: 25px;
+        }
+
+        #memoPage {
+            grid-template-columns: 1fr;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: -0.3px;
+            color: #e2e8f0;
+        }
+
+        /* 📋 참가자 명단 로우 스타일 */
+        .entry-row {
+            display: grid;
+            grid-template-columns: 1.1fr 1.3fr 0.6fr 0.6fr 0.9fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+            background: #182238;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .entry-row.selected {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: #232d44;
+        }
+
+        /* ⚖️ 1:1 맞밸 설정 슬롯 디자인 */
+        .balance-box {
+            background: #0f1626;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .balance-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .balance-slot {
+            background: #161f33;
+            border: 1px solid #24324f;
+            border-radius: 6px;
+            padding: 8px 15px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 0.5fr 2fr;
+            gap: 15px;
+            align-items: center;
+        }
+        .balance-slot-title {
+            font-size: 13px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .bs-1 { color: #f43f5e; } .bs-2 { color: #3b82f6; } .bs-3 { color: #10b981; } .bs-4 { color: #a855f7; } .bs-5 { color: #eab308; }
+
+        /* 맞밸 레이블 배지 스타일 */
+        .balance-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .bb-0 { background: transparent; color: var(--text-muted); }
+        .bb-1 { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .bb-2 { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .bb-3 { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .bb-4 { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .bb-5 { background: rgba(234, 179, 104, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 104, 0.3); }
+
+        input, select, textarea {
+            background-color: #0f1626;
+            border: 1px solid #24324f;
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .board-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .team-section {
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 250px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .team-section.blue { 
+            background-color: var(--blue-bg); 
+            border-color: rgba(59, 130, 246, 0.2);
+            box-shadow: inset 0 0 20px var(--blue-glow);
+        }
+        .team-section.red { 
+            background-color: var(--red-bg); 
+            border-color: rgba(239, 68, 68, 0.2);
+            box-shadow: inset 0 0 20px var(--red-glow);
+        }
+
+        .team-title-blue { color: #60a5fa; font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.3px; }
+        .team-title-red { color: #f87171; font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.3px; }
+
+        .player-card {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr 0.6fr 0.8fr 0.9fr;
+            gap: 6px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: #111726;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .player-card:hover {
+            transform: translateY(-1px);
+            background: #161f33;
+        }
+        .blue .player-card { border-color: rgba(59, 130, 246, 0.15); }
+        .blue .player-card:hover { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+        
+        .red .player-card { border-color: rgba(239, 68, 68, 0.15); }
+        .red .player-card:hover { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); }
+
+        .p-tier {
+            font-weight: 700;
+            text-align: center;
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 12px;
+            width: fit-content;
+            margin: 0 auto;
+            letter-spacing: -0.2px;
+        }
+        
+        .tier-C, .tier-CH { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .tier-GM { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .tier-M { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .tier-D { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .tier-E { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .tier-P { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+        .tier-G { background: rgba(234, 179, 8, 0.12); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.25); }
+        .tier-S { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+        .tier-B { background: rgba(180, 83, 9, 0.15); color: #fb923c; border: 1px solid rgba(180, 83, 9, 0.3); }
+        .tier-I { background: rgba(115, 115, 115, 0.15); color: #a3a3a3; border: 1px solid rgba(115, 115, 115, 0.3); }
+
+        .p-pos { text-align: right; color: #94a3b8; font-size: 13px; font-weight: 500; white-space: nowrap; }
+
+        .db-grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.6fr;
+            gap: 24px;
+            margin-top: 5px;
+        }
+        .db-list {
+            max-height: 560px;
+            overflow-y: auto;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            background: #0f1626;
+            padding: 6px;
+        }
+        .db-item {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr 0.7fr 0.7fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        .db-item:last-child { border: none; }
+        .db-item input, .db-item select { padding: 6px 8px; font-size: 13px; background-color: #161f33;}
+        
+        .btn-delete {
+            background: none; border: none; color: #f87171; cursor: pointer; padding: 4px; font-size: 13px; font-weight: bold;
+        }
+        .btn-delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-radius: 4px; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--panel-border);
+        }
+        .controls button { flex: 1; }
+
+        button {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            padding: 11px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        button:hover {
+            background-color: #334155;
+            border-color: #475569;
+        }
+        .btn-reset { border-color: rgba(239, 68, 68, 0.3); color: #f87171; background: transparent; }
+        .btn-reset:hover { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
+
+        .btn-popup {
+            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+            border: none;
+            color: #ffffff;
+        }
+        .btn-popup:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ 햄부기햄스터 내전 대시보드</h1>
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('matchRoomPage', this)">🎮 LIVE 매칭룸</button>
+            <button class="tab-btn" onclick="switchTab('memoPage', this)">🗂️ 멤버 데이터 명단</button>
+            <button class="tab-btn btn-popup" onclick="openBroadcastPopup()">📺 방송 화공 창 분리하기</button>
+        </div>
+    </header>
+
+    <div id="matchRoomPage" class="tab-content active">
+        <div class="panel">
+            <div class="panel-title">⚖️ 관리자 지정 1:1 맞밸 설정 (세로 나열식)</div>
+            <div class="balance-box">
+                <div class="balance-list" id="balanceListContainer">
+                    <!-- JS에서 5개의 슬롯을 세로형 리스트로 동적 렌더링 -->
+                </div>
+            </div>
+
+            <div class="panel-title">👥 실시간 참가 인원 (10인) <span style="font-size:12px; color:var(--accent-gold); font-weight:normal;">* 맞밸 #1~5 순서 정렬 상태</span></div>
+            <div id="entryList"></div>
+            
+            <div class="controls">
+                <button onclick="swapTeams()">🔄 팀 진영 스왑</button>
+                <button onclick="tradeSelectedPlayers()">🤝 선택 인원 1:1 교환</button>
+                <button class="btn-reset" onclick="resetTeams()">🧼 진영 초기화</button>
+            </div>
+        </div>
+
+        <div class="panel board-container">
+            <div class="team-section blue">
+                <div class="team-title-blue">🔹 1팀 (블루 진영)</div>
+                <div id="blueBoard"></div>
+            </div>
+            <div class="team-section red">
+                <div class="team-title-red">🔸 2팀 (레드 진영)</div>
+                <div id="redBoard"></div>
+            </div>
+            
+            <div style="background: #0f1626; border: 1px solid var(--panel-border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-size: 13px; font-weight: 700; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📋 디스코드 제출용 텍스트 (자동 추출)</span>
+                    <button onclick="copyDiscordText()" style="padding: 5px 12px; font-size: 11px; background: #3b82f6; color: #fff; border:none; height:auto; border-radius:4px; font-weight:600;">복사하기</button>
+                </div>
+                <textarea id="discordTextOutput" rows="4" style="font-family: monospace; font-size: 12px; color: #94a3b8; background:#090d16; border-color:#1e293b;" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div id="memoPage" class="tab-content">
+        <div class="panel">
+            <div class="panel-title">🗂️ 내전 멤버 통합 저장소 관리</div>
+            
+            <div class="db-grid-layout">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="background: #0f1626; padding: 18px; border-radius: 8px; border: 1px dashed #334155;">
+                        <div style="font-size: 12px; font-weight: bold; color: var(--accent-gold); margin-bottom: 10px;">📋 구글 스프레드시트 일괄 데이터 가져오기</div>
+                        <textarea id="csvPasteInput" rows="3" placeholder="구글 스프레드시트 셀 범위를 마우스로 복사한 후 붙여넣기 하세요."></textarea>
+                        <button onclick="importFromGoogleSheet()" style="background: #2563eb; color: #fff; padding: 10px; width: 100%; margin-top: 10px; border:none; border-radius:6px; font-weight:600;">⚡ 명단 로드하기</button>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px; background: #0f1626; padding: 16px; border-radius: 8px; border:1px solid var(--panel-border);">
+                        <div style="font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 4px;">👤 신규 멤버 등록</div>
+                        <input type="text" id="addName" placeholder="참가자 이름 (예: 햄부기)">
+                        <input type="text" id="addLolName" placeholder="롤 닉네임 (예: 햄부기파워)">
+                        <div style="display: flex; gap: 6px;">
+                            <select id="addTier">
+                                <option value="CH">CH</option><option value="GM">GM</option><option value="M">M</option>
+                                <option value="D">D</option><option value="E">E</option><option value="P">P</option>
+                                <option value="G">G</option><option value="S">S</option><option value="B">B</option><option value="I">I</option>
+                            </select>
+                            <select id="addPos">
+                                <option value="탑">탑</option><option value="정글">정글</option>
+                                <option value="미드">미드</option><option value="원딜">원딜</option><option value="서폿">서폿</option>
+                            </select>
+                        </div>
+                        <button onclick="addMemberToDB()" style="background: #334155; border:none; margin-top: 4px; color:#fff;">➕ 멤버 데이터 저장</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">📋 메모장 등록 멤버 (<span id="memberCount">0</span>명) <span style="font-size:12px; color:var(--text-muted); font-weight:normal; margin-left:10px;">* 리스트 내부 수정 시 실시간 자동 저장됩니다.</span></div>
+                    <div class="db-list" id="dbList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tierRank = { 'C': 1, 'CH': 1, 'GM': 2, 'M': 3, 'D': 4, 'E': 5, 'P': 6, 'G': 7, 'S': 8, 'B': 9, 'I': 10 };
+        const posIcons = { '탑': '🛡️', '정글': '⚔️', '미드': '🔮', '원딜': '🏹', '서폿': '🌟', '미정': '❓' };
+
+        let mockDatabase = JSON.parse(localStorage.getItem('hambugi_db')) || {};
+        let popupWindow = null; 
+
+        let currentPlayers = Array.from({ length: 10 }, (_, i) => ({
+            id: i, name: "", lolName: "", tier: "", pos: "", team: "미지정", selected: false
+        }));
+
+        let balancePairs = Array.from({ length: 5 }, () => ({ playerA: "", playerB: "" }));
+
+        function getChosung(str) {
+            const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+            let result = "";
+            for(let i=0; i<str.length; i++) {
+                const code = str.charCodeAt(i) - 44032;
+                if(code >= 0 && code <= 11172) result += cho[Math.floor(code / 588)];
+                else result += str.charAt(i);
+            }
+            return result;
+        }
+
+        function switchTab(pageId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => { if(!el.classList.contains('btn-popup')) el.classList.remove('active'); });
+            
+            document.getElementById(pageId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function openBroadcastPopup() {
+            if (popupWindow && !popupWindow.closed) {
+                popupWindow.focus();
+                return;
+            }
+
+            popupWindow = window.open("", "BroadcastWindow", "width=1800,height=950,resizable=yes,scrollbars=yes");
+            
+            popupWindow.document.write(`
+                <html>
+                <head>
+                    <title>📺 방송용 실시간 현황판</title>
+                    <style>
+                        body { background-color: #0b0f19; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; padding: 30px; margin: 0; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 30px; -webkit-font-smoothing: antialiased; }
+                        .panel { background-color: #131a2e; border: 1px solid #1f2a45; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+                        .team-section { border-radius: 12px; padding: 20px; min-height: 600px; border: 1px solid transparent; }
+                        .waiting { background-color: #111726; border-color: #1f2a45; }
+                        .blue { background-color: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.15); }
+                        .red { background-color: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2); box-shadow: inset 0 0 25px rgba(239, 68, 68, 0.15); }
+                        .title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 25px; padding-bottom: 12px; letter-spacing: -0.5px; }
+                        .title-wait { color: #f59e0b; border-bottom: 1px solid rgba(245, 158, 11, 0.2); }
+                        .title-blue { color: #60a5fa; border-bottom: 1px solid rgba(59, 130, 246, 0.2); }
+                        .title-red { color: #f87171; border-bottom: 1px solid rgba(239, 68, 68, 0.2); }
+                        
+                        /* 방송 화공 맞밸 매치업 슬롯 스타일 */
+                        .pop-balance-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+                        .pop-balance-slot { background: #182238; border: 1px solid #24324f; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+                        .pop-slot-header { font-size: 14px; font-weight: 800; display: flex; justify-content: space-between; border-bottom: 1px solid #24324f; padding-bottom: 6px; }
+                        .pbs-1 { color: #f43f5e; } .pbs-2 { color: #3b82f6; } .pbs-3 { color: #10b981; } .pbs-4 { color: #a855f7; } .pbs-5 { color: #eab308; }
+                        .pop-slot-body { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+                        .pop-mini-card { background: #0f1626; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; min-height: 24px; border: 1px solid #1e293b; }
+                        .pop-mini-card.empty { color: #475569; font-weight: normal; justify-content: center; background: transparent; border-style: dashed; }
+                        .pop-mini-tier { font-size: 11px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-left: 6px; }
+
+                        .player-card { display: grid; grid-template-columns: 1fr 1.5fr 0.6fr 0.9fr; gap: 6px; padding: 14px 16px; margin-bottom: 10px; font-size: 16px; font-weight: 600; background: #111726; border: 1px solid #1e293b; border-radius: 8px; align-items: center; }
+                        .blue .player-card { border-color: rgba(59, 130, 246, 0.15); }
+                        .red .player-card { border-color: rgba(239, 68, 68, 0.15); }
+                        .p-tier { font-weight: 700; text-align: center; border-radius: 4px; padding: 3px 6px; font-size: 12px; width: fit-content; margin: 0 auto; }
+                        .tier-C, .tier-CH { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+                        .tier-GM { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+                        .tier-M { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+                        .tier-D { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+                        .tier-E { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+                        .tier-P { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+                        .tier-G { background: rgba(234, 179, 8, 0.12); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.25); }
+                        .tier-S { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+                        .tier-B { background: rgba(180, 83, 9, 0.15); color: #fb923c; border: 1px solid rgba(180, 83, 9, 0.3); }
+                        .tier-I { background: rgba(115, 115, 115, 0.15); color: #a3a3a3; border: 1px solid rgba(115, 115, 115, 0.3); }
+                        .p-pos { text-align: right; font-weight: 600; color: #94a3b8; font-size: 15px; white-space: nowrap; }
+
+                        .balance-badge { font-size: 11px; font-weight: 800; padding: 4px 6px; border-radius: 4px; text-align: center; white-space: nowrap; }
+                        .bb-0 { display: none; }
+                        .bb-1 { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
+                        .bb-2 { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+                        .bb-3 { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+                        .bb-4 { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+                        .bb-5 { background: rgba(234, 179, 104, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 104, 0.3); }
+                    </style>
+                </head>
+                <body>
+                    <div class="panel team-section waiting">
+                        <div class="title title-wait">⚖️ 맞밸 매치업 (대기 현황)</div>
+                        <div class="pop-balance-list" id="popBalanceZone"></div>
+                        <div style="font-size:13px; font-weight:700; color:#64748b; margin: 15px 0 10px 5px; border-bottom:1px dashed #1f2a45; padding-bottom:5px;">기타 대기 플레이어</div>
+                        <div id="pWait"></div>
+                    </div>
+                    <div class="panel team-section blue"><div class="title title-blue">🔹 1팀 (블루)</div><div id="pBlue"></div></div>
+                    <div class="panel team-section red"><div class="title title-red">🔸 2팀 (레드)</div><div id="pRed"></div></div>
+                </body>
+                </html>
+            `);
+            popupWindow.document.close();
+            renderRightBoards();
+        }
+
+        function saveDB() {
+            localStorage.setItem('hambugi_db', JSON.stringify(mockDatabase));
+            renderDBList();
+        }
+
+        function importFromGoogleSheet() {
+            const rawText = document.getElementById("csvPasteInput").value;
+            if(!rawText.trim()) { alert("클립보드 데이터 로드 실패!"); return; }
+
+            const lines = rawText.split("\n");
+            let importCount = 0;
+
+            lines.forEach(line => {
+                if(!line.trim()) return;
+                const row = line.split("\t");
+                
+                const name = row[0] ? row[0].trim() : "";
+                const lolName = row[1] ? row[1].trim() : "";
+                const tier = row[2] ? row[2].trim().toUpperCase() : "";
+                const pos = row[3] ? row[3].trim() : "";
+
+                if(name && tier && tierRank[tier]) {
+                    mockDatabase[name] = { lolName: lolName || "", tier: tier, pos: pos || "미정" };
+                    importCount++;
+                }
+            });
+
+            if(importCount > 0) {
+                alert(`🚀 데이터베이스: 총 ${importCount}명의 유저 정보가 성공적으로 등록되었습니다.`);
+                document.getElementById("csvPasteInput").value = "";
+                saveDB();
+                syncCurrentPlayersWithDB();
+            } else {
+                alert("⚠️ 구조가 유효하지 않습니다. 올바른 복사 양식인지 확인해 주세요.");
+            }
+        }
+
+        function addMemberToDB() {
+            const name = document.getElementById("addName").value.trim();
+            const lolName = document.getElementById("addLolName").value.trim();
+            const tier = document.getElementById("addTier").value;
+            const pos = document.getElementById("addPos").value;
+
+            if(!name) { alert("식별 가능한 이름을 입력하십시오."); return; }
+
+            mockDatabase[name] = { lolName: lolName, tier: tier, pos: pos };
+            saveDB();
+            
+            document.getElementById("addName").value = "";
+            document.getElementById("addLolName").value = "";
+            
+            syncCurrentPlayersWithDB();
+        }
+
+        function updateDBInline(originalName, key, val) {
+            if (mockDatabase[originalName]) {
+                mockDatabase[originalName][key] = val;
+                localStorage.setItem('hambugi_db', JSON.stringify(mockDatabase));
+                syncCurrentPlayersWithDB();
+            }
+        }
+
+        function deleteMemberFromDB(name) {
+            if(!confirm(`[${name}] 선수를 데이터 명단에서 영구 소거하시겠습니까?`)) return;
+            delete mockDatabase[name];
+            saveDB();
+            syncCurrentPlayersWithDB();
+        }
+
+        function syncCurrentPlayersWithDB() {
+            currentPlayers.forEach(p => {
+                if(p.name && mockDatabase[p.name]) {
+                    p.lolName = mockDatabase[p.name].lolName;
+                    p.tier = mockDatabase[p.name].tier;
+                    p.pos = mockDatabase[p.name].pos;
+                }
+            });
+            sortAllPlayersStructure();
+        }
+
+        function renderDBList() {
+            const listContainer = document.getElementById("dbList");
+            const countContainer = document.getElementById("memberCount");
+            listContainer.innerHTML = "";
+            const keys = Object.keys(mockDatabase);
+            
+            countContainer.innerText = keys.length;
+
+            if(keys.length === 0) {
+                listContainer.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">등록된 내전 유저 정보가 없습니다.</div>`;
+                return;
+            }
+
+            keys.sort().forEach(name => {
+                const item = document.createElement("div");
+                item.className = "db-item";
+                
+                const pData = mockDatabase[name];
+                
+                let tierOptions = "";
+                ['CH','GM','M','D','E','P','G','S','B','I'].forEach(t => {
+                    tierOptions += `<option value="${t}" ${pData.tier===t?'selected':''}>${t}</option>`;
+                });
+
+                let posOptions = "";
+                ['탑','정글','미드','원딜','서폿'].forEach(po => {
+                    posOptions += `<option value="${po}" ${pData.pos===po?'selected':''}>${po}</option>`;
+                });
+
+                item.innerHTML = `
+                    <span style="font-weight:700; color:#cbd5e1; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${name}</span>
+                    <input type="text" value="${pData.lolName}" placeholder="닉네임" onchange="updateDBInline('${name}', 'lolName', this.value)">
+                    <select onchange="updateDBInline('${name}', 'tier', this.value)">${tierOptions}</select>
+                    <select onchange="updateDBInline('${name}', 'pos', this.value)">${posOptions}</select>
+                    <button class="btn-delete" onclick="deleteMemberFromDB('${name}')">✕</button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        function getPlayerBalanceGroup(name) {
+            if (!name) return 0;
+            for (let i = 0; i < 5; i++) {
+                if (balancePairs[i].playerA === name || balancePairs[i].playerB === name) {
+                    return i + 1;
+                }
+            }
+            return 0;
+        }
+
+        function renderBalanceSlots() {
+            const container = document.getElementById("balanceListContainer");
+            container.innerHTML = "";
+
+            const namedPlayers = currentPlayers.filter(p => p.name);
+
+            for (let i = 0; i < 5; i++) {
+                const slotIndex = i + 1;
+                const slot = document.createElement("div");
+                slot.className = "balance-slot";
+
+                let optionsA = `<option value="">-- 참가자 선택 --</option>`;
+                let optionsB = `<option value="">-- 참가자 선택 --</option>`;
+
+                namedPlayers.forEach(p => {
+                    const selA = balancePairs[i].playerA === p.name ? 'selected' : '';
+                    const selB = balancePairs[i].playerB === p.name ? 'selected' : '';
+                    optionsA += `<option value="${p.name}" ${selA}>${p.name}</option>`;
+                    optionsB += `<option value="${p.name}" ${selB}>${p.name}</option>`;
+                });
+
+                slot.innerHTML = `
+                    <div class="balance-slot-title bs-${slotIndex}">맞밸 SET #${slotIndex}</div>
+                    <select style="padding:6px; font-size:13px; background:#0f1626;" onchange="updateBalancePair(${i}, 'playerA', this.value)">${optionsA}</select>
+                    <div style="color:var(--text-muted); text-align:center; font-weight:bold; font-size:12px;">VS</div>
+                    <select style="padding:6px; font-size:13px; background:#0f1626;" onchange="updateBalancePair(${i}, 'playerB', this.value)">${optionsB}</select>
+                `;
+                container.appendChild(slot);
+            }
+        }
+
+        function updateBalancePair(index, role, value) {
+            balancePairs[index][role] = value;
+            
+            // 맞밸 변경 시 자동 미러 배정 연동 로직 작동 후 전체 재정렬
+            currentPlayers.forEach(p => {
+                if(p.name && (p.name === balancePairs[index].playerA || p.name === balancePairs[index].playerB)) {
+                    triggerMirrorForPlayer(p);
+                }
+            });
+            sortAllPlayersStructure();
+        }
+
+        function render() {
+            renderBalanceSlots();
+            renderLeftEntries();
+            renderRightBoards();
+        }
+
+        function renderLeftEntries() {
+            const container = document.getElementById("entryList");
+            container.innerHTML = "";
+
+            currentPlayers.forEach((player) => {
+                const row = document.createElement("div");
+                row.className = `entry-row ${player.selected ? 'selected' : ''}`;
+                row.onclick = (e) => {
+                    if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                        player.selected = !player.selected;
+                        render();
+                    }
+                };
+
+                const bgNum = getPlayerBalanceGroup(player.name);
+                const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}">맞밸 #${bgNum}</div>` : `<div class="balance-badge bb-0">-</div>`;
+
+                row.innerHTML = `
+                    <input type="text" value="${player.name}" placeholder="참가자 이름/초성" onchange="updatePlayerName(${player.id}, this.value)">
+                    <input type="text" value="${player.lolName}" placeholder="-" readonly style="color:var(--text-muted); background:#0c1220;">
+                    <input type="text" value="${player.tier}" placeholder="-" readonly style="color:#60a5fa; font-weight:700; text-align:center; background:#0c1220;">
+                    <input type="text" value="${player.pos ? posIcons[player.pos] + ' ' + player.pos : ''}" placeholder="-" readonly style="color:var(--text-main); text-align:center; font-weight:600; background:#0c1220;">
+                    ${badgeHtml}
+                    <select onchange="updatePlayerTeamViaSelect(${player.id}, this.value)">
+                        <option value="미지정" ${player.team==='미지정'?'selected':''}>미지정</option>
+                        <option value="1팀" ${player.team==='1팀'?'selected':''}>1팀 (블루)</option>
+                        <option value="2팀" ${player.team==='2팀'?'selected':''}>2팀 (레드)</option>
+                    </select>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderRightBoards() {
+            const blueBoard = document.getElementById("blueBoard");
+            const redBoard = document.getElementById("redBoard");
+
+            blueBoard.innerHTML = ""; redBoard.innerHTML = "";
+
+            // 정렬 로직 적용 리스트 추출
+            const blueTeam = currentPlayers.filter(p => p.name && p.team === "1팀").sort(sortLogic);
+            const redTeam = currentPlayers.filter(p => p.name && p.team === "2팀").sort(sortLogic);
+
+            blueTeam.slice(0, 5).forEach(p => blueBoard.appendChild(createPlayerCard(p)));
+            redTeam.slice(0, 5).forEach(p => redBoard.appendChild(createPlayerCard(p)));
+
+            generateDiscordText(blueTeam, redTeam);
+
+            // 📺 방송 화공 분리창 실시간 DOM 렌더링 최적화
+            if (popupWindow && !popupWindow.closed) {
+                const popBalanceZone = popupWindow.document.getElementById("popBalanceZone");
+                const pWait = popupWindow.document.getElementById("pWait");
+                const pBlue = popupWindow.document.getElementById("pBlue");
+                const pRed = popupWindow.document.getElementById("pRed");
+
+                if (popBalanceZone && pWait && pBlue && pRed) {
+                    popBalanceZone.innerHTML = "";
+                    pWait.innerHTML = ""; pBlue.innerHTML = ""; pRed.innerHTML = "";
+
+                    // 1. 방송창 맞밸 매치업 세로 리스트 구현
+                    for (let i = 0; i < 5; i++) {
+                        const slotIdx = i + 1;
+                        const pAName = balancePairs[i].playerA;
+                        const pBName = balancePairs[i].playerB;
+
+                        const pA = pAName ? currentPlayers.find(x => x.name === pAName) : null;
+                        const pB = pBName ? currentPlayers.find(x => x.name === pBName) : null;
+
+                        const slotDiv = popupWindow.document.createElement("div");
+                        slotDiv.className = "pop-balance-slot";
+
+                        let pAHtml = `<div class="pop-mini-card empty">-</div>`;
+                        let pBHtml = `<div class="pop-mini-card empty">-</div>`;
+
+                        if (pA) {
+                            const tClass = `tier-${pA.tier || 'I'}`;
+                            const tState = pA.team !== "미지정" ? ` <span style="font-size:11px; color:#64748b;">[${pA.team}]</span>` : "";
+                            pAHtml = `<div class="pop-mini-card">
+                                <span>${posIcons[pA.pos] || ''} ${pA.name}${tState}</span>
+                                <span class="pop-mini-tier ${tClass}">${pA.tier || '-'}</span>
+                            </div>`;
+                        }
+                        if (pB) {
+                            const tClass = `tier-${pB.tier || 'I'}`;
+                            const tState = pB.team !== "미지정" ? ` <span style="font-size:11px; color:#64748b;">[${pB.team}]</span>` : "";
+                            pBHtml = `<div class="pop-mini-card">
+                                <span>${posIcons[pB.pos] || ''} ${pB.name}${tState}</span>
+                                <span class="pop-mini-tier ${tClass}">${pB.tier || '-'}</span>
+                            </div>`;
+                        }
+
+                        slotDiv.innerHTML = `
+                            <div class="pop-slot-header pbs-${slotIdx}">맞밸 매치업 SET #${slotIdx}</div>
+                            <div class="pop-slot-body">
+                                ${pAHtml}
+                                <div style="font-size:12px; font-weight:bold; color:#475569; text-align:center;">VS</div>
+                                ${pBHtml}
+                            </div>
+                        `;
+                        popBalanceZone.appendChild(slotDiv);
+                    }
+
+                    // 2. 일반 대기 플레이어 (맞밸 그룹이 없으면서 팀이 미지정인 유저) 나열
+                    const ordinaryWaiting = currentPlayers.filter(p => p.name && p.team === "미지정" && getPlayerBalanceGroup(p.name) === 0);
+                    if (ordinaryWaiting.length === 0) {
+                        pWait.innerHTML = `<div style="color:#475569; font-size:13px; text-align:center; padding:10px;">대기 인원 없음</div>`;
+                    } else {
+                        ordinaryWaiting.sort(sortLogic).forEach(p => pWait.appendChild(createPopupCard(p)));
+                    }
+
+                    // 3. 블루 / 레드 팀 현황판 출력
+                    blueTeam.slice(0, 5).forEach(p => pBlue.appendChild(createPopupCard(p)));
+                    redTeam.slice(0, 5).forEach(p => pRed.appendChild(createPopupCard(p)));
+                }
+            }
+        }
+
+        function createPlayerCard(player) {
+            const card = document.createElement("div");
+            card.className = "player-card";
+            const icon = posIcons[player.pos] || '❓';
+            
+            const bgNum = getPlayerBalanceGroup(player.name);
+            const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}" style="transform: scale(0.9);">맞밸 #${bgNum}</div>` : `<div></div>`;
+
+            card.innerHTML = `
+                <div style="font-weight:700; color:#f8fafc;">${player.name}</div>
+                <div style="font-size:12px; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; font-weight:normal;">${player.lolName || '-'}</div>
+                <div class="p-tier tier-${player.tier}">${player.tier}</div>
+                <div class="p-pos">${icon} ${player.pos}</div>
+                ${badgeHtml}
+            `;
+            return card;
+        }
+
+        function createPopupCard(player) {
+            const card = popupWindow.document.createElement("div");
+            card.className = "player-card";
+            const icon = posIcons[player.pos] || '❓';
+
+            const bgNum = getPlayerBalanceGroup(player.name);
+            const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}" style="font-size:12px; padding:2px 5px;">맞밸 #${bgNum}</div>` : `<div></div>`;
+
+            card.innerHTML = `
+                <div style="font-weight:700; color:#f8fafc;">${player.name}</div>
+                <div style="color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; font-size:13px; font-weight:normal;">${player.lolName || '-'}</div>
+                <div class="p-tier tier-${player.tier}">${player.tier}</div>
+                <div class="p-pos">${icon} ${player.pos}</div>
+                ${badgeHtml}
+            `;
+            return card;
+        }
+
+        function sortLogic(a, b) {
+            return (tierRank[a.tier] || 99) - (tierRank[b.tier] || 99);
+        }
+
+        function generateDiscordText(blueList, redList) {
+            let text = "내전 1팀 (블루)\n";
+            if(blueList.length === 0) text += "(선택된 유저 없음)\n";
+            blueList.slice(0, 5).forEach(p => { 
+                const bgNum = getPlayerBalanceGroup(p.name);
+                const matchTag = bgNum > 0 ? ` [맞밸#${bgNum}]` : "";
+                text += `${p.name} / ${p.tier} / ${p.pos}${matchTag}\n`; 
+            });
+
+            text += "\n내전 2팀 (레드)\n";
+            if(redList.length === 0) text += "(선택된 유저 없음)\n";
+            redList.slice(0, 5).forEach(p => { 
+                const bgNum = getPlayerBalanceGroup(p.name);
+                const matchTag = bgNum > 0 ? ` [맞밸#${bgNum}]` : "";
+                text += `${p.name} / ${p.tier} / ${p.pos}${matchTag}\n`; 
+            });
+
+            document.getElementById("discordTextOutput").value = text.trim();
+        }
+
+        function copyDiscordText() {
+            const txtArea = document.getElementById("discordTextOutput");
+            txtArea.select();
+            document.execCommand("copy");
+            alert("📋 디스코드 양식이 클립보드에 복사되었습니다.");
+        }
+
+        function updatePlayerName(id, value) {
+            const p = currentPlayers.find(x => x.id === id);
+            const oldName = p.name;
+            const searchStr = value.trim();
+            
+            if (searchStr === "") {
+                removeNameFromBalancePairs(oldName);
+                p.name = ""; p.lolName = ""; p.tier = ""; p.pos = ""; p.team = "미지정";
+                sortAllPlayersStructure();
+                return;
+            }
+
+            const dbKeys = Object.keys(mockDatabase);
+            let matchedName = "";
+
+            if (mockDatabase[searchStr]) {
+                matchedName = searchStr;
+            } else {
+                let partialMatches = dbKeys.filter(k => k.includes(searchStr));
+                if (partialMatches.length === 1) {
+                    matchedName = partialMatches[0];
+                } else if (partialMatches.length === 0) {
+                    const searchCho = getChosung(searchStr);
+                    let choMatches = dbKeys.filter(k => getChosung(k).includes(searchCho));
+                    if (choMatches.length > 0) matchedName = choMatches[0];
+                } else {
+                    matchedName = partialMatches[0];
+                }
+            }
+
+            if (matchedName) {
+                if(oldName) removeNameFromBalancePairs(oldName);
+                p.name = matchedName;
+                p.lolName = mockDatabase[matchedName].lolName;
+                p.tier = mockDatabase[matchedName].tier;
+                p.pos = mockDatabase[matchedName].pos;
+            } else {
+                if(oldName) removeNameFromBalancePairs(oldName);
+                p.name = searchStr;
+                p.lolName = "미등록"; p.tier = "미등록"; p.pos = "미정";
+            }
+            sortAllPlayersStructure();
+        }
+
+        function removeNameFromBalancePairs(name) {
+            if(!name) return;
+            for(let i=0; i<5; i++) {
+                if(balancePairs[i].playerA === name) balancePairs[i].playerA = "";
+                if(balancePairs[i].playerB === name) balancePairs[i].playerB = "";
+            }
+        }
+
+        function updatePlayerTeamViaSelect(id, team) {
+            const player = currentPlayers.find(x => x.id === id);
+            if (!player) return;
+
+            player.team = team;
+            triggerMirrorForPlayer(player);
+            sortAllPlayersStructure();
+        }
+
+        // 맞밸 페어 자동 미러링 트래커 핵심 유틸리티 함수
+        function triggerMirrorForPlayer(player) {
+            if (!player.name) return;
+            const team = player.team;
+
+            for (let i = 0; i < 5; i++) {
+                let partnerName = "";
+                if (balancePairs[i].playerA === player.name) partnerName = balancePairs[i].playerB;
+                else if (balancePairs[i].playerB === player.name) partnerName = balancePairs[i].playerA;
+
+                if (partnerName) {
+                    const partner = currentPlayers.find(x => x.name === partnerName);
+                    if (partner) {
+                        if (team === "1팀") partner.team = "2팀";
+                        else if (team === "2팀") partner.team = "1팀";
+                        else partner.team = "미지정";
+                    }
+                }
+            }
+        }
+
+        // 🔄 핵심 정렬 조건: 맞밸 #1 ➔ #2 ➔ #3 ➔ #4 ➔ #5 순서 정렬 규칙 최적화 반영
+        function sortAllPlayersStructure() {
+            currentPlayers.sort((a, b) => {
+                // 1단계: 이름이 없는 빈 슬롯은 항상 맨 밑으로 내림
+                if (!a.name && b.name) return 1;
+                if (a.name && !b.name) return -1;
+                if (!a.name && !b.name) return 0;
+                
+                // 2단계: 유저별 맞밸 그룹 정보 추출 (그룹이 없으면 99로 처리)
+                const groupA = getPlayerBalanceGroup(a.name) || 99;
+                const groupB = getPlayerBalanceGroup(b.name) || 99;
+
+                // 3단계: 맞밸 1,2,3,4,5 순서대로 상단 고정 정렬 수행
+                if (groupA !== groupB) {
+                    return groupA - groupB;
+                }
+
+                // 4단계: 같은 맞밸 그룹이거나 둘 다 맞밸이 없는 일반 유저일 경우 티어순 정렬
+                return (tierRank[a.tier] || 99) - (tierRank[b.tier] || 99);
+            });
+
+            // 정렬 완료 후 인덱스(id) 재부여 및 뷰 갱신
+            currentPlayers.forEach((p, i) => p.id = i);
+            render();
+        }
+
+        function swapTeams() {
+            currentPlayers.forEach(p => {
+                if (p.team === "1팀") p.team = "2팀";
+                else if (p.team === "2팀") p.team = "1팀";
+            });
+            sortAllPlayersStructure();
+        }
+
+        function tradeSelectedPlayers() {
+            const selected = currentPlayers.filter(p => p.selected);
+            if (selected.length !== 2) {
+                alert("💡 교환하고자 하는 2개의 행 빈 곳을 클릭하여 활성화(주황 테두리) 후 실행하십시오.");
+                return;
+            }
+            const teamTmp = selected[0].team;
+            selected[0].team = selected[1].team;
+            selected[1].team = teamTmp;
+
+            // 교환 후 두 유저의 맞밸 파트너 연동 재갱신
+            triggerMirrorForPlayer(selected[0]);
+            triggerMirrorForPlayer(selected[1]);
+
+            currentPlayers.forEach(p => p.selected = false);
+            sortAllPlayersStructure();
+        }
+
+        function resetTeams() {
+            if(!confirm("배치된 진영과 1:1 맞밸 설정을 전부 초기화 상태로 복구할까요?")) return;
+            currentPlayers.forEach(p => {
+                p.team = "미지정"; p.selected = false;
+            });
+            balancePairs = Array.from({ length: 5 }, () => ({ playerA: "", playerB: "" }));
+            sortAllPlayersStructure();
+        }
+
+        renderDBList();
+        sortAllPlayersStructure();
+    </script>
+</body>
+</html>
