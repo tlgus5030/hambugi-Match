@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ 햄부기햄스터 내전 시스템 (맞밸 정렬 & 매치업 최적화형) ⚡</title>
+    <title>⚡ 햄부기햄스터 맞밸 내전 ⚡</title>
     <style>
         /* 🌌 프리미엄 세련된 미드나잇 다크 테마 */
         :root {
@@ -96,7 +96,7 @@
         }
 
         #matchRoomPage {
-            grid-template-columns: 1.3fr 1fr;
+            grid-template-columns: 1.4fr 0.7fr;
             gap: 25px;
         }
 
@@ -238,38 +238,73 @@
         .team-title-red { color: #f87171; font-size: 16px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.3px; }
 
         .player-card {
-            display: grid;
-            grid-template-columns: 1fr 1.6fr 0.6fr 0.8fr 0.9fr;
-            gap: 6px;
-            padding: 12px 16px;
+            background: #121826;
+            border: 1px solid #24324f;
+            border-radius: 10px;
+            padding: 10px 14px;
             margin-bottom: 8px;
-            background: #111726;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            display: flex;
+            flex-direction: column; /* row → column */
+
+            gap: 6px;
+            transition: .2s;
+        }
+
+        .player-main {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .player-name {
+            flex: 1;
+            font-size: 20px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
+        .player-bottom {
+            width: 100%;
+        }
+
+        .balance-badge {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 5px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+
         .player-card:hover {
-            transform: translateY(-1px);
-            background: #161f33;
+            transform: translateY(-2px);
         }
-        .blue .player-card { border-color: rgba(59, 130, 246, 0.15); }
+
+        .blue .player-card {
+            border-color: #284d92;
+        }
         .blue .player-card:hover { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
-        
-        .red .player-card { border-color: rgba(239, 68, 68, 0.15); }
+
+        .red .player-card {
+            border-color: #6a2630;
+        }
         .red .player-card:hover { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); }
 
         .p-tier {
-            font-weight: 700;
-            text-align: center;
-            border-radius: 4px;
-            padding: 3px 6px;
-            font-size: 12px;
-            width: fit-content;
-            margin: 0 auto;
-            letter-spacing: -0.2px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: 800;
+            margin-left: 10px;
         }
         
         .tier-C, .tier-CH { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
@@ -374,7 +409,7 @@
                 </div>
             </div>
 
-            <div class="panel-title">👥 실시간 참가 인원 (10인) <span style="font-size:12px; color:var(--accent-gold); font-weight:normal;">* 맞밸 #1~5 순서 정렬 상태</span></div>
+            <div class="panel-title">👥 실시간 참가 인원 (10인) <span style="font-size:12px; color:var(--accent-gold); font-weight:normal;"* 탑~서폿 맞밸 순서 정렬 상태</span></div>
             <div id="entryList"></div>
             
             <div class="controls">
@@ -406,14 +441,20 @@
 
     <div id="memoPage" class="tab-content">
         <div class="panel">
-            <div class="panel-title">🗂️ 내전 멤버 통합 저장소 관리</div>
-            
+            <div class="panel-title">
+                🗂️ 내전 멤버 통합 저장소 관리
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="copyAllMembers()" style="background: #059669; border:none; color:white; padding: 6px 12px; font-size: 12px; border-radius: 4px;">📋 전체 명단 복사</button>
+                    <button onclick="clearAllMembers()" style="background: #dc2626; border:none; color:white; padding: 6px 12px; font-size: 12px; border-radius: 4px;">🧹 전체 명단 초기화</button>
+                </div>
+            </div>
+
             <div class="db-grid-layout">
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <div style="background: #0f1626; padding: 18px; border-radius: 8px; border: 1px dashed #334155;">
-                        <div style="font-size: 12px; font-weight: bold; color: var(--accent-gold); margin-bottom: 10px;">📋 구글 스프레드시트 일괄 데이터 가져오기</div>
-                        <textarea id="csvPasteInput" rows="3" placeholder="구글 스프레드시트 셀 범위를 마우스로 복사한 후 붙여넣기 하세요."></textarea>
-                        <button onclick="importFromGoogleSheet()" style="background: #2563eb; color: #fff; padding: 10px; width: 100%; margin-top: 10px; border:none; border-radius:6px; font-weight:600;">⚡ 명단 로드하기</button>
+                        <div style="font-size: 12px; font-weight: bold; color: var(--accent-gold); margin-bottom: 10px;">📋 메모장/디코 데이터 일괄 가져오기</div>
+                        <textarea id="csvPasteInput" rows="4" placeholder="양식: 닉네임 / 롤 닉네임 / 티어 / 라인 &#13;&#10;(예시: 홍길동/길동이닉/GM/탑)&#13;&#10;* 한 줄에 한 명씩 적어서 붙여넣으세요."></textarea>
+                        <button onclick="importFromTextArea()" style="background: #2563eb; color: #fff; padding: 10px; width: 100%; margin-top: 10px; border:none; border-radius:6px; font-weight:600;">⚡ 명단 로드하기</button>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 8px; background: #0f1626; padding: 16px; border-radius: 8px; border:1px solid var(--panel-border);">
@@ -422,21 +463,33 @@
                         <input type="text" id="addLolName" placeholder="롤 닉네임 (예: 햄부기파워)">
                         <div style="display: flex; gap: 6px;">
                             <select id="addTier">
-                                <option value="CH">CH</option><option value="GM">GM</option><option value="M">M</option>
-                                <option value="D">D</option><option value="E">E</option><option value="P">P</option>
-                                <option value="G">G</option><option value="S">S</option><option value="B">B</option><option value="I">I</option>
+                                <option value="CH">CH</option>
+                                <option value="GM">GM</option>
+                                <option value="M">M</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                                <option value="P">P</option>
+                                <option value="G">G</option>
+                                <option value="S">S</option>
+                                <option value="B">B</option>
+                                <option value="I">I</option>
                             </select>
                             <select id="addPos">
-                                <option value="탑">탑</option><option value="정글">정글</option>
-                                <option value="미드">미드</option><option value="원딜">원딜</option><option value="서폿">서폿</option>
+                                <option value="탑">탑</option>
+                                <option value="정글">정글</option>
+                                <option value="미드">미드</option>
+                                <option value="원딜">원딜</option>
+                                <option value="서폿">서폿</option>
                             </select>
                         </div>
-                        <button onclick="addMemberToDB()" style="background: #334155; border:none; margin-top: 4px; color:#fff;">➕ 멤버 데이터 저장</button>
+                        <button onclick="addMemberToDB()" style="background: #334155; border:none; margin-top: 4px; color:#fff; cursor:pointer;">➕ 멤버 데이터 저장</button>
                     </div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">📋 메모장 등록 멤버 (<span id="memberCount">0</span>명) <span style="font-size:12px; color:var(--text-muted); font-weight:normal; margin-left:10px;">* 리스트 내부 수정 시 실시간 자동 저장됩니다.</span></div>
+                    <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+                        📋 메모장 등록 멤버 (<span id="memberCount">0</span>명)
+                    </div>
                     <div class="db-list" id="dbList"></div>
                 </div>
             </div>
@@ -446,6 +499,8 @@
     <script>
         const tierRank = { 'C': 1, 'CH': 1, 'GM': 2, 'M': 3, 'D': 4, 'E': 5, 'P': 6, 'G': 7, 'S': 8, 'B': 9, 'I': 10 };
         const posIcons = { '탑': '🛡️', '정글': '⚔️', '미드': '🔮', '원딜': '🏹', '서폿': '🌟', '미정': '❓' };
+        const balanceNames = ['탑 맞밸','정글 맞밸','미드 맞밸','원딜 맞밸','서폿 맞밸'];
+        const positionOrder = {'탑':1,'정글':2,'미드':3,'원딜':4,'서폿':5};
 
         let mockDatabase = JSON.parse(localStorage.getItem('hambugi_db')) || {};
         let popupWindow = null; 
@@ -475,20 +530,81 @@
             btn.classList.add('active');
         }
 
+
+        // 전체 명단 초기화
+        function clearAllMembers() {
+            if (!confirm("정말로 모든 멤버 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
+            mockDatabase = {};
+            saveDB();
+            syncCurrentPlayersWithDB();
+        }
+
+        // 전체 명단 복사
+        function copyAllMembers() {
+            let text = "";
+            Object.keys(mockDatabase).forEach(name => {
+                const p = mockDatabase[name];
+                text += `${name}/${p.lolName}/${p.tier}/${p.pos}\n`;
+            });
+
+            const tempArea = document.createElement("textarea");
+            tempArea.value = text;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempArea);
+            alert("📋 전체 명단이 슬래시(/) 구분자로 복사되었습니다.");
+        }
+
+        // importFromGoogleSheet 함수 수정
+        function importFromGoogleSheet() {
+            const rawText = document.getElementById("csvPasteInput").value;
+            if (!rawText.trim()) { alert("데이터를 입력해주세요!"); return; }
+
+            const lines = rawText.split("\n");
+            let importCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                // 슬래시(/) 기준으로 나누고, 앞뒤 공백 제거
+                const row = line.split("/").map(item => item.trim());
+
+                const name = row[0] || "";
+                const lolName = row[1] || "";
+                const tier = (row[2] || "").toUpperCase();
+                const pos = row[3] || "미정";
+
+                // 이름과 티어가 존재할 때만 저장
+                if (name && tierRank[tier]) {
+                    mockDatabase[name] = { lolName: lolName, tier: tier, pos: pos };
+                    importCount++;
+                }
+            });
+
+            if (importCount > 0) {
+                alert(`🚀 총 ${importCount}명의 멤버 정보가 성공적으로 등록되었습니다.`);
+                document.getElementById("csvPasteInput").value = "";
+                saveDB();
+                syncCurrentPlayersWithDB();
+            } else {
+                alert("⚠️ 데이터 양식을 확인해주세요. (닉네임/롤닉네임/티어/라인)");
+            }
+        }
+
         function openBroadcastPopup() {
             if (popupWindow && !popupWindow.closed) {
                 popupWindow.focus();
                 return;
             }
 
-            popupWindow = window.open("", "BroadcastWindow", "width=1800,height=950,resizable=yes,scrollbars=yes");
+            popupWindow = window.open("", "BroadcastWindow", "width=1400,height=720,resizable=yes,scrollbars=yes");
             
             popupWindow.document.write(`
                 <html>
                 <head>
                     <title>📺 방송용 실시간 현황판</title>
                     <style>
-                        body { background-color: #0b0f19; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; padding: 30px; margin: 0; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 30px; -webkit-font-smoothing: antialiased; }
+                        body { background-color: #0b0f19; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; padding: 30px; margin: 0; display: grid; grid-template-columns: 1fr 0.6fr 0.6fr; gap: 20px; -webkit-font-smoothing: antialiased; }
                         .panel { background-color: #131a2e; border: 1px solid #1f2a45; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
                         .team-section { border-radius: 12px; padding: 20px; min-height: 600px; border: 1px solid transparent; }
                         .waiting { background-color: #111726; border-color: #1f2a45; }
@@ -509,10 +625,60 @@
                         .pop-mini-card.empty { color: #475569; font-weight: normal; justify-content: center; background: transparent; border-style: dashed; }
                         .pop-mini-tier { font-size: 11px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-left: 6px; }
 
-                        .player-card { display: grid; grid-template-columns: 1fr 1.5fr 0.6fr 0.9fr; gap: 6px; padding: 14px 16px; margin-bottom: 10px; font-size: 16px; font-weight: 600; background: #111726; border: 1px solid #1e293b; border-radius: 8px; align-items: center; }
+                        .player-card{
+                            background:#121826;
+                            border:1px solid #24324f;
+                            border-radius:10px;
+                            padding:10px 14px;
+                            margin-bottom:12px;
+                            display:flex;
+                            flex-direction:column;
+                            gap:14px;
+                        }
+
+                        .player-main{
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:10px;
+                        }
+
+                        .player-name{
+                            flex:1;
+                            font-size:24px;
+                            font-weight:800;
+                            color:white;
+                            white-space:nowrap;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                        }
+
+                        .player-bottom{
+                            width:100%;
+                        }
+
+                        .balance-badge{
+                            display:block;
+                            width:100%;
+                            text-align:center;
+                            padding:4px 0;
+                            font-size:13px;
+                            line-height:1.2;
+                            font-weight:700;
+                            border-radius:5px;
+                        }   
+
+                        .p-tier{
+                            flex-shrink:0;
+                            font-size:14px;
+                            font-weight:700;
+                            padding:2px 6px;
+                            margin-left:10px;
+                            border-radius:4px;
+                        }
+
                         .blue .player-card { border-color: rgba(59, 130, 246, 0.15); }
                         .red .player-card { border-color: rgba(239, 68, 68, 0.15); }
-                        .p-tier { font-weight: 700; text-align: center; border-radius: 4px; padding: 3px 6px; font-size: 12px; width: fit-content; margin: 0 auto; }
                         .tier-C, .tier-CH { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
                         .tier-GM { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
                         .tier-M { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
@@ -525,7 +691,6 @@
                         .tier-I { background: rgba(115, 115, 115, 0.15); color: #a3a3a3; border: 1px solid rgba(115, 115, 115, 0.3); }
                         .p-pos { text-align: right; font-weight: 600; color: #94a3b8; font-size: 15px; white-space: nowrap; }
 
-                        .balance-badge { font-size: 11px; font-weight: 800; padding: 4px 6px; border-radius: 4px; text-align: center; white-space: nowrap; }
                         .bb-0 { display: none; }
                         .bb-1 { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
                         .bb-2 { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
@@ -538,7 +703,6 @@
                     <div class="panel team-section waiting">
                         <div class="title title-wait">⚖️ 맞밸 매치업 (대기 현황)</div>
                         <div class="pop-balance-list" id="popBalanceZone"></div>
-                        <div style="font-size:13px; font-weight:700; color:#64748b; margin: 15px 0 10px 5px; border-bottom:1px dashed #1f2a45; padding-bottom:5px;">기타 대기 플레이어</div>
                         <div id="pWait"></div>
                     </div>
                     <div class="panel team-section blue"><div class="title title-blue">🔹 1팀 (블루)</div><div id="pBlue"></div></div>
@@ -555,35 +719,35 @@
             renderDBList();
         }
 
-        function importFromGoogleSheet() {
+        function importFromTextArea() {
             const rawText = document.getElementById("csvPasteInput").value;
-            if(!rawText.trim()) { alert("클립보드 데이터 로드 실패!"); return; }
+            if (!rawText.trim()) { alert("입력된 텍스트 데이터가 없습니다."); return; }
 
             const lines = rawText.split("\n");
             let importCount = 0;
 
             lines.forEach(line => {
-                if(!line.trim()) return;
-                const row = line.split("\t");
-                
+                if (!line.trim()) return;
+
+                const row = line.trim().split("/");
                 const name = row[0] ? row[0].trim() : "";
                 const lolName = row[1] ? row[1].trim() : "";
                 const tier = row[2] ? row[2].trim().toUpperCase() : "";
                 const pos = row[3] ? row[3].trim() : "";
 
-                if(name && tier && tierRank[tier]) {
+                if (name && tier && tierRank[tier]) {
                     mockDatabase[name] = { lolName: lolName || "", tier: tier, pos: pos || "미정" };
                     importCount++;
                 }
             });
 
-            if(importCount > 0) {
-                alert(`🚀 데이터베이스: 총 ${importCount}명의 유저 정보가 성공적으로 등록되었습니다.`);
+            if (importCount > 0) {
+                alert(`🚀 성공: 총 ${importCount}명의 멤버 정보가 명단에 등록되었습니다.`);
                 document.getElementById("csvPasteInput").value = "";
                 saveDB();
                 syncCurrentPlayersWithDB();
             } else {
-                alert("⚠️ 구조가 유효하지 않습니다. 올바른 복사 양식인지 확인해 주세요.");
+                alert("⚠️ 인식 실패: 데이터 구조(이름/닉네임/티어/라인)나 티어 대문자 입력(예: GM, D, P)을 확인해 주세요.");
             }
         }
 
@@ -680,6 +844,21 @@
             return 0;
         }
 
+            function getBalanceOrder(player) {
+                if (!player || !player.name) return 999;
+
+                for (let i = 0; i < balancePairs.length; i++) {
+                    if (
+                        balancePairs[i].playerA === player.name ||
+                        balancePairs[i].playerB === player.name
+                    ) {
+                        return i;   // 탑=0, 정글=1, 미드=2...
+                    }
+                }
+
+                return 999; // 맞밸에 없는 사람은 맨 아래
+            }
+
         function renderBalanceSlots() {
             const container = document.getElementById("balanceListContainer");
             container.innerHTML = "";
@@ -702,7 +881,7 @@
                 });
 
                 slot.innerHTML = `
-                    <div class="balance-slot-title bs-${slotIndex}">맞밸 SET #${slotIndex}</div>
+                    <div class="balance-slot-title bs-${slotIndex}">${balanceNames[i]}</div>
                     <select style="padding:6px; font-size:13px; background:#0f1626;" onchange="updateBalancePair(${i}, 'playerA', this.value)">${optionsA}</select>
                     <div style="color:var(--text-muted); text-align:center; font-weight:bold; font-size:12px;">VS</div>
                     <select style="padding:6px; font-size:13px; background:#0f1626;" onchange="updateBalancePair(${i}, 'playerB', this.value)">${optionsB}</select>
@@ -744,7 +923,7 @@
                 };
 
                 const bgNum = getPlayerBalanceGroup(player.name);
-                const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}">맞밸 #${bgNum}</div>` : `<div class="balance-badge bb-0">-</div>`;
+                const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}">${balanceNames[bgNum-1]}</div>` : `<div class="balance-badge bb-0">-</div>`;
 
                 row.innerHTML = `
                     <input type="text" value="${player.name}" placeholder="참가자 이름/초성" onchange="updatePlayerName(${player.id}, this.value)">
@@ -769,8 +948,13 @@
             blueBoard.innerHTML = ""; redBoard.innerHTML = "";
 
             // 정렬 로직 적용 리스트 추출
-            const blueTeam = currentPlayers.filter(p => p.name && p.team === "1팀").sort(sortLogic);
-            const redTeam = currentPlayers.filter(p => p.name && p.team === "2팀").sort(sortLogic);
+            const blueTeam = currentPlayers
+                .filter(p => p.name && p.team === "1팀")
+                .sort((a, b) => getBalanceOrder(a) - getBalanceOrder(b));
+
+            const redTeam = currentPlayers
+                .filter(p => p.name && p.team === "2팀")
+                .sort((a, b) => getBalanceOrder(a) - getBalanceOrder(b));
 
             blueTeam.slice(0, 5).forEach(p => blueBoard.appendChild(createPlayerCard(p)));
             redTeam.slice(0, 5).forEach(p => redBoard.appendChild(createPlayerCard(p)));
@@ -821,7 +1005,7 @@
                         }
 
                         slotDiv.innerHTML = `
-                            <div class="pop-slot-header pbs-${slotIdx}">맞밸 매치업 SET #${slotIdx}</div>
+                            <div class="pop-slot-header pbs-${slotIdx}">${balanceNames[i]}</div>
                             <div class="pop-slot-body">
                                 ${pAHtml}
                                 <div style="font-size:12px; font-weight:bold; color:#475569; text-align:center;">VS</div>
@@ -829,14 +1013,6 @@
                             </div>
                         `;
                         popBalanceZone.appendChild(slotDiv);
-                    }
-
-                    // 2. 일반 대기 플레이어 (맞밸 그룹이 없으면서 팀이 미지정인 유저) 나열
-                    const ordinaryWaiting = currentPlayers.filter(p => p.name && p.team === "미지정" && getPlayerBalanceGroup(p.name) === 0);
-                    if (ordinaryWaiting.length === 0) {
-                        pWait.innerHTML = `<div style="color:#475569; font-size:13px; text-align:center; padding:10px;">대기 인원 없음</div>`;
-                    } else {
-                        ordinaryWaiting.sort(sortLogic).forEach(p => pWait.appendChild(createPopupCard(p)));
                     }
 
                     // 3. 블루 / 레드 팀 현황판 출력
@@ -849,36 +1025,65 @@
         function createPlayerCard(player) {
             const card = document.createElement("div");
             card.className = "player-card";
-            const icon = posIcons[player.pos] || '❓';
-            
+
             const bgNum = getPlayerBalanceGroup(player.name);
-            const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}" style="transform: scale(0.9);">맞밸 #${bgNum}</div>` : `<div></div>`;
 
             card.innerHTML = `
-                <div style="font-weight:700; color:#f8fafc;">${player.name}</div>
-                <div style="font-size:12px; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; font-weight:normal;">${player.lolName || '-'}</div>
-                <div class="p-tier tier-${player.tier}">${player.tier}</div>
-                <div class="p-pos">${icon} ${player.pos}</div>
-                ${badgeHtml}
-            `;
+        <div class="player-main">
+
+            <div class="player-name">
+                ${player.name}
+            </div>
+
+            <div class="p-tier tier-${player.tier}">
+                ${player.tier}
+            </div>
+
+        </div>
+
+        ${bgNum > 0
+                    ? `
+        <div class="player-bottom">
+            <div class="balance-badge bb-${bgNum}">
+                ${balanceNames[bgNum - 1]}
+            </div>
+        </div>`
+                    : ""
+                }
+        `;
+
             return card;
         }
 
         function createPopupCard(player) {
+
             const card = popupWindow.document.createElement("div");
             card.className = "player-card";
-            const icon = posIcons[player.pos] || '❓';
 
             const bgNum = getPlayerBalanceGroup(player.name);
-            const badgeHtml = bgNum > 0 ? `<div class="balance-badge bb-${bgNum}" style="font-size:12px; padding:2px 5px;">맞밸 #${bgNum}</div>` : `<div></div>`;
 
-            card.innerHTML = `
-                <div style="font-weight:700; color:#f8fafc;">${player.name}</div>
-                <div style="color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; font-size:13px; font-weight:normal;">${player.lolName || '-'}</div>
-                <div class="p-tier tier-${player.tier}">${player.tier}</div>
-                <div class="p-pos">${icon} ${player.pos}</div>
-                ${badgeHtml}
+            card.innerHTML =`
+            <div class="player-main">
+                <div class="player-name">
+                    ${player.name}
+                </div>
+
+                <div class="p-tier tier-${player.tier}">
+                    ${player.tier}
+                </div>
+            </div>
+
+            ${bgNum > 0 ?
+                    `
+                <div class="player-bottom">
+                    <div class="balance-badge bb-${bgNum}">
+                        ${balanceNames[bgNum - 1]}
+                    </div>
+                </div>
+                `: ""
+                }
             `;
+
             return card;
         }
 
