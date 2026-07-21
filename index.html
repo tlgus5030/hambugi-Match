@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ 햄부기햄스터 맞밸 내전 ⚡</title>
+    <title>⚔️ 햄부기 밸런스 내전</title>
     <style>
         /* 🌌 프리미엄 세련된 미드나잇 다크 테마 */
         :root {
@@ -392,7 +392,7 @@
 <body>
 
     <header>
-        <h1>⚡ 햄부기햄스터 내전 대시보드</h1>
+        <h1>⚔️ 햄부기햄스터 내전 대시보드</h1>
         <div class="tab-nav">
             <button class="tab-btn active" onclick="switchTab('matchRoomPage', this)">🎮 LIVE 매칭룸</button>
             <button class="tab-btn" onclick="switchTab('memoPage', this)">🗂️ 멤버 데이터 명단</button>
@@ -444,8 +444,6 @@
             <div class="panel-title">
                 🗂️ 내전 멤버 통합 저장소 관리
                 <div style="display: flex; gap: 8px;">
-                    <button onclick="copyAllMembers()" style="background: #059669; border:none; color:white; padding: 6px 12px; font-size: 12px; border-radius: 4px;">📋 전체 명단 복사</button>
-                    <button onclick="clearAllMembers()" style="background: #dc2626; border:none; color:white; padding: 6px 12px; font-size: 12px; border-radius: 4px;">🧹 전체 명단 초기화</button>
                 </div>
             </div>
 
@@ -496,13 +494,52 @@
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // 롤 내전 사이트와 동일한 파이어베이스 설정값 입력
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://hambugi-lol-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const dbRef = ref(db, 'hambugi_db');
+
+        // 전역 객체로 등록하여 일반 스크립트에서도 사용 가능하게 브릿지 연결
+        window.firebaseDB = db;
+        window.firebaseRef = dbRef;
+        window.firebaseSet = set;
+        window.firebaseUpdate = update;
+        window.firebaseRemove = remove;
+        window.firebaseRefSingle = (name) => ref(db, 'hambugi_db/' + name);
+
+        // 파이어베이스 데이터 변경 감지 실시간 수신기 구동
+        onValue(dbRef, (snapshot) => {
+            const data = snapshot.val();
+            window.mockDatabase = data || {};
+
+            // 화면 갱신 및 참가자 명단 동기화
+            renderDBList();
+            syncCurrentPlayersWithDB();
+        });
+    </script>
+
     <script>
         const tierRank = { 'C': 1, 'CH': 1, 'GM': 2, 'M': 3, 'D': 4, 'E': 5, 'P': 6, 'G': 7, 'S': 8, 'B': 9, 'I': 10 };
         const posIcons = { '탑': '🛡️', '정글': '⚔️', '미드': '🔮', '원딜': '🏹', '서폿': '🌟', '미정': '❓' };
         const balanceNames = ['탑 맞밸','정글 맞밸','미드 맞밸','원딜 맞밸','서폿 맞밸'];
         const positionOrder = {'탑':1,'정글':2,'미드':3,'원딜':4,'서폿':5};
 
-        let mockDatabase = JSON.parse(localStorage.getItem('hambugi_db')) || {};
+        // 파이어베이스 데이터 수신 대기용 전역 객체 (localStorage 대신 사용)
+        window.mockDatabase = {};
         let popupWindow = null; 
 
         let currentPlayers = Array.from({ length: 10 }, (_, i) => ({
@@ -528,67 +565,6 @@
             
             document.getElementById(pageId).classList.add('active');
             btn.classList.add('active');
-        }
-
-
-        // 전체 명단 초기화
-        function clearAllMembers() {
-            if (!confirm("정말로 모든 멤버 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
-            mockDatabase = {};
-            saveDB();
-            syncCurrentPlayersWithDB();
-        }
-
-        // 전체 명단 복사
-        function copyAllMembers() {
-            let text = "";
-            Object.keys(mockDatabase).forEach(name => {
-                const p = mockDatabase[name];
-                text += `${name}/${p.lolName}/${p.tier}/${p.pos}\n`;
-            });
-
-            const tempArea = document.createElement("textarea");
-            tempArea.value = text;
-            document.body.appendChild(tempArea);
-            tempArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempArea);
-            alert("📋 전체 명단이 슬래시(/) 구분자로 복사되었습니다.");
-        }
-
-        // importFromGoogleSheet 함수 수정
-        function importFromGoogleSheet() {
-            const rawText = document.getElementById("csvPasteInput").value;
-            if (!rawText.trim()) { alert("데이터를 입력해주세요!"); return; }
-
-            const lines = rawText.split("\n");
-            let importCount = 0;
-
-            lines.forEach(line => {
-                if (!line.trim()) return;
-                // 슬래시(/) 기준으로 나누고, 앞뒤 공백 제거
-                const row = line.split("/").map(item => item.trim());
-
-                const name = row[0] || "";
-                const lolName = row[1] || "";
-                const tier = (row[2] || "").toUpperCase();
-                const pos = row[3] || "미정";
-
-                // 이름과 티어가 존재할 때만 저장
-                if (name && tierRank[tier]) {
-                    mockDatabase[name] = { lolName: lolName, tier: tier, pos: pos };
-                    importCount++;
-                }
-            });
-
-            if (importCount > 0) {
-                alert(`🚀 총 ${importCount}명의 멤버 정보가 성공적으로 등록되었습니다.`);
-                document.getElementById("csvPasteInput").value = "";
-                saveDB();
-                syncCurrentPlayersWithDB();
-            } else {
-                alert("⚠️ 데이터 양식을 확인해주세요. (닉네임/롤닉네임/티어/라인)");
-            }
         }
 
         function openBroadcastPopup() {
@@ -714,9 +690,38 @@
             renderRightBoards();
         }
 
+
+        // 파이어베이스 실시간 연동 구동용 저장 함수
         function saveDB() {
-            localStorage.setItem('hambugi_db', JSON.stringify(mockDatabase));
-            renderDBList();
+            if (window.firebaseSet && window.firebaseRef) {
+                window.firebaseSet(window.firebaseRef, window.mockDatabase)
+                    .catch(err => console.error("메모장 동기화 실패:", err));
+            }
+        }
+
+        // 전체 명단 초기화
+        function clearAllMembers() {
+            if (!confirm("정말로 모든 멤버 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
+            window.mockDatabase = {};
+            saveDB();
+            syncCurrentPlayersWithDB();
+        }
+
+        // 전체 명단 복사
+        function copyAllMembers() {
+            let text = "";
+            Object.keys(window.mockDatabase).forEach(name => {
+                const p = window.mockDatabase[name];
+                text += `${name}/${p.lolName}/${p.tier}/${p.pos}\n`;
+            });
+
+            const tempArea = document.createElement("textarea");
+            tempArea.value = text;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempArea);
+            alert("📋 전체 명단이 슬래시(/) 구분자로 복사되었습니다.");
         }
 
         function importFromTextArea() {
@@ -736,7 +741,7 @@
                 const pos = row[3] ? row[3].trim() : "";
 
                 if (name && tier && tierRank[tier]) {
-                    mockDatabase[name] = { lolName: lolName || "", tier: tier, pos: pos || "미정" };
+                    window.mockDatabase[name] = { lolName: lolName || "", tier: tier, pos: pos || "미정" };
                     importCount++;
                 }
             });
@@ -759,7 +764,7 @@
 
             if(!name) { alert("식별 가능한 이름을 입력하십시오."); return; }
 
-            mockDatabase[name] = { lolName: lolName, tier: tier, pos: pos };
+            window.mockDatabase[name] = { lolName: lolName, tier: tier, pos: pos };
             saveDB();
             
             document.getElementById("addName").value = "";
@@ -769,26 +774,35 @@
         }
 
         function updateDBInline(originalName, key, val) {
-            if (mockDatabase[originalName]) {
-                mockDatabase[originalName][key] = val;
-                localStorage.setItem('hambugi_db', JSON.stringify(mockDatabase));
+            if (window.mockDatabase[originalName]) {
+                window.mockDatabase[originalName][key] = val;
+                if(window.firebaseUpdate && window.firebaseRefSingle) {
+                    const userRef = window.firebaseRefSingle(originalName);
+                    window.firebaseUpdate(userRef, { [key]: val })
+                        .catch(err => console.error("원격 수정 실패:", err));
+                }
                 syncCurrentPlayersWithDB();
             }
         }
 
         function deleteMemberFromDB(name) {
             if(!confirm(`[${name}] 선수를 데이터 명단에서 영구 소거하시겠습니까?`)) return;
-            delete mockDatabase[name];
-            saveDB();
+            if(window.firebaseRemove && window.firebaseRefSingle) {
+                window.firebaseRemove(window.firebaseRefSingle(name))
+                    .then(() => {
+                        delete window.mockDatabase[name];
+                    })
+                    .catch(err => console.error("원격 삭제 실패:", err));
+            }
             syncCurrentPlayersWithDB();
         }
 
         function syncCurrentPlayersWithDB() {
             currentPlayers.forEach(p => {
-                if(p.name && mockDatabase[p.name]) {
-                    p.lolName = mockDatabase[p.name].lolName;
-                    p.tier = mockDatabase[p.name].tier;
-                    p.pos = mockDatabase[p.name].pos;
+                if(p.name && window.mockDatabase[p.name]) {
+                    p.lolName = window.mockDatabase[p.name].lolName;
+                    p.tier = window.mockDatabase[p.name].tier;
+                    p.pos = window.mockDatabase[p.name].pos;
                 }
             });
             sortAllPlayersStructure();
@@ -797,8 +811,10 @@
         function renderDBList() {
             const listContainer = document.getElementById("dbList");
             const countContainer = document.getElementById("memberCount");
+            if(!listContainer || !countContainer) return;
+
             listContainer.innerHTML = "";
-            const keys = Object.keys(mockDatabase);
+            const keys = Object.keys(window.mockDatabase);
             
             countContainer.innerText = keys.length;
 
@@ -811,7 +827,7 @@
                 const item = document.createElement("div");
                 item.className = "db-item";
                 
-                const pData = mockDatabase[name];
+                const pData = window.mockDatabase[name];
                 
                 let tierOptions = "";
                 ['CH','GM','M','D','E','P','G','S','B','I'].forEach(t => {
@@ -844,23 +860,22 @@
             return 0;
         }
 
-            function getBalanceOrder(player) {
-                if (!player || !player.name) return 999;
-
-                for (let i = 0; i < balancePairs.length; i++) {
-                    if (
-                        balancePairs[i].playerA === player.name ||
-                        balancePairs[i].playerB === player.name
-                    ) {
-                        return i;   // 탑=0, 정글=1, 미드=2...
-                    }
+        function getBalanceOrder(player) {
+            if (!player || !player.name) return 999;
+            for (let i = 0; i < balancePairs.length; i++) {
+                if (
+                    balancePairs[i].playerA === player.name ||
+                    balancePairs[i].playerB === player.name
+                ) {
+                    return i;   
                 }
-
-                return 999; // 맞밸에 없는 사람은 맨 아래
             }
+            return 999; 
+        }
 
         function renderBalanceSlots() {
             const container = document.getElementById("balanceListContainer");
+            if(!container) return;
             container.innerHTML = "";
 
             const namedPlayers = currentPlayers.filter(p => p.name);
@@ -892,8 +907,6 @@
 
         function updateBalancePair(index, role, value) {
             balancePairs[index][role] = value;
-            
-            // 맞밸 변경 시 자동 미러 배정 연동 로직 작동 후 전체 재정렬
             currentPlayers.forEach(p => {
                 if(p.name && (p.name === balancePairs[index].playerA || p.name === balancePairs[index].playerB)) {
                     triggerMirrorForPlayer(p);
@@ -910,6 +923,7 @@
 
         function renderLeftEntries() {
             const container = document.getElementById("entryList");
+            if(!container) return;
             container.innerHTML = "";
 
             currentPlayers.forEach((player) => {
@@ -944,10 +958,10 @@
         function renderRightBoards() {
             const blueBoard = document.getElementById("blueBoard");
             const redBoard = document.getElementById("redBoard");
+            if(!blueBoard || !redBoard) return;
 
             blueBoard.innerHTML = ""; redBoard.innerHTML = "";
 
-            // 정렬 로직 적용 리스트 추출
             const blueTeam = currentPlayers
                 .filter(p => p.name && p.team === "1팀")
                 .sort((a, b) => getBalanceOrder(a) - getBalanceOrder(b));
@@ -961,7 +975,6 @@
 
             generateDiscordText(blueTeam, redTeam);
 
-            // 📺 방송 화공 분리창 실시간 DOM 렌더링 최적화
             if (popupWindow && !popupWindow.closed) {
                 const popBalanceZone = popupWindow.document.getElementById("popBalanceZone");
                 const pWait = popupWindow.document.getElementById("pWait");
@@ -972,7 +985,6 @@
                     popBalanceZone.innerHTML = "";
                     pWait.innerHTML = ""; pBlue.innerHTML = ""; pRed.innerHTML = "";
 
-                    // 1. 방송창 맞밸 매치업 세로 리스트 구현
                     for (let i = 0; i < 5; i++) {
                         const slotIdx = i + 1;
                         const pAName = balancePairs[i].playerA;
@@ -1015,7 +1027,6 @@
                         popBalanceZone.appendChild(slotDiv);
                     }
 
-                    // 3. 블루 / 레드 팀 현황판 출력
                     blueTeam.slice(0, 5).forEach(p => pBlue.appendChild(createPopupCard(p)));
                     redTeam.slice(0, 5).forEach(p => pRed.appendChild(createPopupCard(p)));
                 }
@@ -1025,78 +1036,46 @@
         function createPlayerCard(player) {
             const card = document.createElement("div");
             card.className = "player-card";
-
             const bgNum = getPlayerBalanceGroup(player.name);
 
             card.innerHTML = `
-        <div class="player-main">
-
-            <div class="player-name">
-                ${player.name}
-            </div>
-
-            <div class="p-tier tier-${player.tier}">
-                ${player.tier}
-            </div>
-
-        </div>
-
-        ${bgNum > 0
-                    ? `
-        <div class="player-bottom">
-            <div class="balance-badge bb-${bgNum}">
-                ${balanceNames[bgNum - 1]}
-            </div>
-        </div>`
-                    : ""
-                }
-        `;
-
+                <div class="player-main">
+                    <div class="player-name">${player.name}</div>
+                    <div class="p-tier tier-${player.tier}">${player.tier}</div>
+                </div>
+                ${bgNum > 0 ? `<div class="player-bottom"><div class="balance-badge bb-${bgNum}">${balanceNames[bgNum - 1]}</div></div>` : ""}
+            `;
             return card;
         }
 
         function createPopupCard(player) {
-
             const card = popupWindow.document.createElement("div");
             card.className = "player-card";
-
             const bgNum = getPlayerBalanceGroup(player.name);
 
             card.innerHTML =`
-            <div class="player-main">
-                <div class="player-name">
-                    ${player.name}
+                <div class="player-main">
+                    <div class="player-name">${player.name}</div>
+                    <div class="p-tier tier-${player.tier}">${player.tier}</div>
                 </div>
-
-                <div class="p-tier tier-${player.tier}">
-                    ${player.tier}
-                </div>
-            </div>
-
-            ${bgNum > 0 ?
-                    `
-                <div class="player-bottom">
-                    <div class="balance-badge bb-${bgNum}">
-                        ${balanceNames[bgNum - 1]}
-                    </div>
-                </div>
-                `: ""
-                }
+                ${bgNum > 0 ? `<div class="player-bottom"><div class="balance-badge bb-${bgNum}">${balanceNames[bgNum - 1]}</div></div>` : ""}
             `;
-
             return card;
         }
 
-        function sortLogic(a, b) {
-            return (tierRank[a.tier] || 99) - (tierRank[b.tier] || 99);
-        }
-
         function generateDiscordText(blueList, redList) {
+            const outputEl = document.getElementById("discordTextOutput");
+            if(!outputEl) return;
+
+            // 맞밸 번호에 대응하는 라인 이름 배열
+            const matchLineNames = ['탑 맞밸', '정글 맞밸', '미드 맞밸', '원딜 맞밸', '서폿 맞밸'];
+
             let text = "내전 1팀 (블루)\n";
             if(blueList.length === 0) text += "(선택된 유저 없음)\n";
             blueList.slice(0, 5).forEach(p => { 
                 const bgNum = getPlayerBalanceGroup(p.name);
-                const matchTag = bgNum > 0 ? ` [맞밸#${bgNum}]` : "";
+                // 맞밸 번호(1~5)가 있으면 해당 라인 이름으로 변환, 없으면 빈 문자열
+                const matchTag = (bgNum > 0 && bgNum <= 5) ? ` [${matchLineNames[bgNum - 1]}]` : "";
                 text += `${p.name} / ${p.tier} / ${p.pos}${matchTag}\n`; 
             });
 
@@ -1104,11 +1083,11 @@
             if(redList.length === 0) text += "(선택된 유저 없음)\n";
             redList.slice(0, 5).forEach(p => { 
                 const bgNum = getPlayerBalanceGroup(p.name);
-                const matchTag = bgNum > 0 ? ` [맞밸#${bgNum}]` : "";
+                const matchTag = (bgNum > 0 && bgNum <= 5) ? ` [${matchLineNames[bgNum - 1]}]` : "";
                 text += `${p.name} / ${p.tier} / ${p.pos}${matchTag}\n`; 
             });
 
-            document.getElementById("discordTextOutput").value = text.trim();
+            outputEl.value = text.trim();
         }
 
         function copyDiscordText() {
@@ -1130,10 +1109,10 @@
                 return;
             }
 
-            const dbKeys = Object.keys(mockDatabase);
+            const dbKeys = Object.keys(window.mockDatabase);
             let matchedName = "";
 
-            if (mockDatabase[searchStr]) {
+            if (window.mockDatabase[searchStr]) {
                 matchedName = searchStr;
             } else {
                 let partialMatches = dbKeys.filter(k => k.includes(searchStr));
@@ -1151,9 +1130,9 @@
             if (matchedName) {
                 if(oldName) removeNameFromBalancePairs(oldName);
                 p.name = matchedName;
-                p.lolName = mockDatabase[matchedName].lolName;
-                p.tier = mockDatabase[matchedName].tier;
-                p.pos = mockDatabase[matchedName].pos;
+                p.lolName = window.mockDatabase[matchedName].lolName;
+                p.tier = window.mockDatabase[matchedName].tier;
+                p.pos = window.mockDatabase[matchedName].pos;
             } else {
                 if(oldName) removeNameFromBalancePairs(oldName);
                 p.name = searchStr;
@@ -1179,7 +1158,6 @@
             sortAllPlayersStructure();
         }
 
-        // 맞밸 페어 자동 미러링 트래커 핵심 유틸리티 함수
         function triggerMirrorForPlayer(player) {
             if (!player.name) return;
             const team = player.team;
@@ -1200,28 +1178,22 @@
             }
         }
 
-        // 🔄 핵심 정렬 조건: 맞밸 #1 ➔ #2 ➔ #3 ➔ #4 ➔ #5 순서 정렬 규칙 최적화 반영
         function sortAllPlayersStructure() {
             currentPlayers.sort((a, b) => {
-                // 1단계: 이름이 없는 빈 슬롯은 항상 맨 밑으로 내림
                 if (!a.name && b.name) return 1;
                 if (a.name && !b.name) return -1;
                 if (!a.name && !b.name) return 0;
                 
-                // 2단계: 유저별 맞밸 그룹 정보 추출 (그룹이 없으면 99로 처리)
                 const groupA = getPlayerBalanceGroup(a.name) || 99;
                 const groupB = getPlayerBalanceGroup(b.name) || 99;
 
-                // 3단계: 맞밸 1,2,3,4,5 순서대로 상단 고정 정렬 수행
                 if (groupA !== groupB) {
                     return groupA - groupB;
                 }
 
-                // 4단계: 같은 맞밸 그룹이거나 둘 다 맞밸이 없는 일반 유저일 경우 티어순 정렬
                 return (tierRank[a.tier] || 99) - (tierRank[b.tier] || 99);
             });
 
-            // 정렬 완료 후 인덱스(id) 재부여 및 뷰 갱신
             currentPlayers.forEach((p, i) => p.id = i);
             render();
         }
@@ -1244,7 +1216,6 @@
             selected[0].team = selected[1].team;
             selected[1].team = teamTmp;
 
-            // 교환 후 두 유저의 맞밸 파트너 연동 재갱신
             triggerMirrorForPlayer(selected[0]);
             triggerMirrorForPlayer(selected[1]);
 
@@ -1260,9 +1231,6 @@
             balancePairs = Array.from({ length: 5 }, () => ({ playerA: "", playerB: "" }));
             sortAllPlayersStructure();
         }
-
-        renderDBList();
-        sortAllPlayersStructure();
     </script>
 </body>
 </html>
